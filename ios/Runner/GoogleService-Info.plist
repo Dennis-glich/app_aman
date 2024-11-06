@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>231568599360-1aim1297ecqp68ok9f1s06fahj55bauc.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.231568599360-1aim1297ecqp68ok9f1s06fahj55bauc</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>231568599360-k3k8imvj031i70345vmjj2kfbdn9c53e.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyCSMaxvmcGz8VhTKLLDRU6VtCbaINJ4ZzQ</string>
+	<key>GCM_SENDER_ID</key>
+	<string>231568599360</string>git clone https://github.com/firebase/firebase-ios-sdk.git
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.zero.aman</string>
+	<key>PROJECT_ID</key>
+	<string>aman-8a19f</string>
+	<key>STORAGE_BUCKET</key>
+	<string>aman-8a19f.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:231568599360:ios:50d6e1de1be5a3bc0732a5</string>
+	<key>DATABASE_URL</key>
+	<string>https://aman-8a19f-default-rtdb.asia-southeast1.firebasedatabase.app</string>
+</dict>
+</plist>

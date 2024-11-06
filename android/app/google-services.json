@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "231568599360",
+    "firebase_url": "https://aman-8a19f-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "aman-8a19f",
+    "storage_bucket": "aman-8a19f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:231568599360:android:a92cd9f5c81a67a20732a5",
+        "android_client_info": {
+          "package_name": "com.zero.aman"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "231568599360-k3k8imvj031i70345vmjj2kfbdn9c53e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.zero.aman",
+            "certificate_hash": "15f597f2eeae3140c458ac0738b34cc657a8b119"
+          }
+        },
+        {
+          "client_id": "231568599360-e1diqaiidhlnq5rsvtvqkp4acvit9flr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOOufebXZ3NIZO0ivdBs4P1RbI8tyk1yk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "231568599360-e1diqaiidhlnq5rsvtvqkp4acvit9flr.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "231568599360-1aim1297ecqp68ok9f1s06fahj55bauc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.zero.aman"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
