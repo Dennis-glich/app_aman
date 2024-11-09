@@ -7,13 +7,20 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:app_aman/screen/services/auth_service.dart';
 import 'package:app_aman/screen/services/database_service.dart';
 
-class RegisterPage extends StatelessWidget {
+class RegisterPage extends StatefulWidget {
+  @override
+  _RegisterPageState createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   final AuthService _authService = AuthService();
   final DatabaseService _databaseService = DatabaseService();
+  bool _passwordVisible = false;
+  bool _confirmPasswordVisible = false;
 
   // Fungsi untuk mengenkripsi password
   String encryptPassword(String password) {
@@ -75,8 +82,6 @@ class RegisterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-
     return Scaffold(
       body: Column(
         children: [
@@ -182,7 +187,7 @@ class RegisterPage extends StatelessWidget {
                         SizedBox(height: 10),
                         TextField(
                           controller: passwordController,
-                          obscureText: true,
+                          obscureText: !_passwordVisible,
                           decoration: InputDecoration(
                             hintText: 'Password',
                             filled: true,
@@ -190,18 +195,42 @@ class RegisterPage extends StatelessWidget {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _passwordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _passwordVisible = !_passwordVisible;
+                                });
+                              },
+                            ),
                           ),
                         ),
                         SizedBox(height: 10),
                         TextField(
                           controller: confirmPasswordController,
-                          obscureText: true,
+                          obscureText: !_confirmPasswordVisible,
                           decoration: InputDecoration(
                             hintText: 'Confirm Password',
                             filled: true,
                             fillColor: Colors.white,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(20),
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _confirmPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _confirmPasswordVisible = !_confirmPasswordVisible;
+                                });
+                              },
                             ),
                           ),
                         ),
@@ -227,7 +256,7 @@ class RegisterPage extends StatelessWidget {
                     children: [
                       IconButton(
                           onPressed: () async {
-                            final Uri url = Uri.parse('https://www.instagram.com/your_instagram_profile');
+                            final Uri url = Uri.parse('https://www.instagram.com/aman_indobot/');
                             if (await canLaunchUrl(url)) {
                               await launchUrl(
                                 url,
@@ -255,10 +284,15 @@ class RegisterPage extends StatelessWidget {
   }
 }
 
+class SignInPage extends StatefulWidget {
+  @override
+  _SignInPageState createState() => _SignInPageState();
+}
 
-class SignInPage extends StatelessWidget {
+class _SignInPageState extends State<SignInPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _passwordVisible = false;
 
   // Fungsi untuk login pengguna
   Future<void> signInUser(BuildContext context) async {
@@ -278,7 +312,7 @@ class SignInPage extends StatelessWidget {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed! Cek kembali email dan password')),
+        SnackBar(content: Text('Login failed: ${e.toString()}')),
       );
     }
   }
@@ -372,7 +406,7 @@ class SignInPage extends StatelessWidget {
                         SizedBox(height: 10),
                         TextField(
                           controller: passwordController,
-                          obscureText: true,
+                          obscureText: !_passwordVisible,
                           decoration: InputDecoration(
                             hintText: 'Password',
                             filled: true,
@@ -380,14 +414,18 @@ class SignInPage extends StatelessWidget {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () {},
-                            child: Text('Forgot password', style: TextStyle(color: Colors.orange)),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _passwordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _passwordVisible = !_passwordVisible;
+                                });
+                              },
+                            ),
                           ),
                         ),
                         SizedBox(height: 20),
@@ -400,33 +438,32 @@ class SignInPage extends StatelessWidget {
                             ),
                             padding: EdgeInsets.symmetric(horizontal: 120, vertical: 15),
                           ),
-                          child: Text('Login', style: TextStyle(color: Colors.white)),
+                          child: Text('Sign In', style: TextStyle(color: Colors.white)),
                         ),
-                        SizedBox(height: 10),
                       ],
                     ),
                   ),
-                  SizedBox(height: 20),
+                  // Social icons
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
-                        onPressed: () async {
-                        final Uri url = Uri.parse('https://www.instagram.com/your_instagram_profile');
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(
-                            url,
-                            mode: LaunchMode.externalApplication, // Membuka di browser eksternal
-                          );
-                        } else {
-                          throw 'Could not launch $url';
-                        }
-                      },
-                        icon: FaIcon(FontAwesomeIcons.instagram, color: Colors.brown), // Instagram Icon
+                          onPressed: () async {
+                            final Uri url = Uri.parse('https://www.instagram.com/aman_indobot/');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(
+                                url,
+                                mode: LaunchMode.externalApplication,
+                              );
+                            } else {
+                              throw 'Could not launch $url';
+                            }
+                          },
+                          icon: FaIcon(FontAwesomeIcons.instagram, color: Colors.brown),
                       ),
                       IconButton(
-                        onPressed: () {},
-                        icon: FaIcon(FontAwesomeIcons.google, color: Colors.brown), // Google Icon
+                        onPressed: () {}, // Tambahkan logika untuk Google sign-in
+                        icon: FaIcon(FontAwesomeIcons.google, color: Colors.brown),
                       ),
                     ],
                   ),

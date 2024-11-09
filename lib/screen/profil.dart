@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -10,14 +10,33 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   String profileImagePath = 'assets/default_profil.png';
-  String fullname = 'User';
+  String fullName = 'User'; // Default value for fullName
   String email = 'user@example.com';
-  int _currentIndex = 0;
+
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
   @override
   void initState() {
     super.initState();
+    _fetchFullName(); // Fetch the user's full name
     _loadUserData();
+  }
+
+  // Function to fetch the full name of the current user from Firebase
+  void _fetchFullName() {
+    String? userId = FirebaseAuth.instance.currentUser?.uid; // Get the logged-in user's UID
+    if (userId != null) {
+      _database.child('users/$userId/fullName').once().then((DatabaseEvent event) {
+        final data = event.snapshot.value;
+        setState(() {
+          fullName = data != null ? data.toString() : 'User'; // Set fullName or default
+        });
+      }).catchError((error) {
+        setState(() {
+          fullName = 'Error fetching name'; // Error handling
+        });
+      });
+    }
   }
 
   void _loadUserData() async {
@@ -27,32 +46,6 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         email = user.email ?? 'user@example.com';
       });
-
-      DatabaseReference userRef = FirebaseDatabase.instance.ref("users/${user.uid}");
-      final snapshot = await userRef.child('fullname').get();
-      if (snapshot.exists) {
-        setState(() {
-          fullname = snapshot.value as String;
-        });
-      }
-    }
-  }
-
-  // Method to switch pages when bottom navigation item is tapped
-  void onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-    switch (index) {
-      case 0:
-        Navigator.pushNamed(context, '/home'); // Replace with your route names
-        break;
-      case 1:
-        Navigator.pushNamed(context, '/dashboard');
-        break;
-      case 2:
-        Navigator.pushNamed(context, '/profil');
-        break;
     }
   }
 
@@ -126,7 +119,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        buildProfileField('Username', fullname),
+                        buildProfileField('Username', fullName), // Using fullName here
                         buildProfileField('Email', email),
                       ],
                     ),
@@ -137,11 +130,11 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
+      // Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: onTabTapped,
+        backgroundColor: Colors.red[300],
         items: [
-            BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.home, color: Colors.white),
             label: '',
           ),
@@ -154,6 +147,22 @@ class _ProfilePageState extends State<ProfilePage> {
             label: '',
           ),
         ],
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white54,
+        currentIndex: 2, // Profile tab selected by default
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushNamed(context, '/home');
+              break;
+            case 1:
+              Navigator.pushNamed(context, '/dashboard');
+              break;
+            case 2:
+              Navigator.pushNamed(context, '/profil');
+              break;
+          }
+        },
       ),
     );
   }

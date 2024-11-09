@@ -6,7 +6,6 @@ class TeamProfilePage extends StatefulWidget {
 }
 
 class _TeamProfilePageState extends State<TeamProfilePage> {
-  int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -70,24 +69,9 @@ class _TeamProfilePageState extends State<TeamProfilePage> {
           ),
         ],
       ),
+      // Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-          switch (index) {
-            case 0:
-              Navigator.pushNamed(context, '/home'); // Navigasi ke halaman Home
-              break;
-            case 1:
-              Navigator.pushNamed(context, '/dashboard'); // Navigasi ke halaman Dashboard
-              break;
-            case 2:
-              Navigator.pushNamed(context, '/profil'); // Navigasi ke halaman Settings
-              break;
-          }
-        },
+        backgroundColor: Colors.red[300],
         items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.home, color: Colors.white),
@@ -102,6 +86,22 @@ class _TeamProfilePageState extends State<TeamProfilePage> {
             label: '',
           ),
         ],
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white54,
+        currentIndex: 1, // Dashboard tab selected by default
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushNamed(context, '/home');
+              break;
+            case 1:
+              Navigator.pushNamed(context, '/dashboard');
+              break;
+            case 2:
+              Navigator.pushNamed(context, '/profil');
+              break;
+          }
+        },
       ),
     );
   }

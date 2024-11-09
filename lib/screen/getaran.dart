@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'widget/bar.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'widget/bar.dart'; // Assuming 'buildVibrationChart' is defined in 'widget/bar.dart'
 
 class GetaranMonitoring extends StatefulWidget {
   @override
@@ -8,13 +9,64 @@ class GetaranMonitoring extends StatefulWidget {
 }
 
 class _GetaranMonitoringState extends State<GetaranMonitoring> {
-  int _currentIndex = 0;
+
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
+  List<ChartData> _chartData = [];
+  bool _isLoading = true;
+  bool isBuzzerOn = false; // Add state for the buzzer switch
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchVibrationData(); // Fetch vibration data when the page is loaded
+    _initializeData(); // Listen to buzzer state changes from Firebase
+  }
+
+    // Function to initialize data from Firebase (for control switches and gas level)
+  void _initializeData() {
+    _database.child('deviceId/control').once().then((DatabaseEvent event) {
+      final data = event.snapshot.value as Map;
+      setState(() {
+        isBuzzerOn = data['switch buzzer'] == 1;
+      });
+    });
+  }
+
+void _fetchVibrationData() {
+  List<String> sensorKeys = ['S1', 'S2', 'S3', 'S4'];
+  List<ChartData> fetchedData = [];
+
+  // Loop through each sensor path to get data individually
+  Future.wait(sensorKeys.map((sensor) {
+    return _database.child('deviceId/monitor/vib_value/$sensor').once().then((DatabaseEvent event) {
+      final data = event.snapshot.value;
+      
+      // Check if data is int or double, otherwise set default to 0
+      double value = (data is int) ? data.toDouble() : (data is double ? data : 0.0);
+      
+      fetchedData.add(ChartData(sensor, value));
+    });
+  })).then((_) {
+    setState(() {
+      _chartData = fetchedData;
+      _isLoading = false;
+    });
+  }).catchError((error) {
+    setState(() {
+      _isLoading = false;
+    });
+    print('Error fetching vibration data: $error');
+  });
+}
+
+  // Function to update switch status in Firebase
+  void _updateSwitch(String switchName, bool isOn) {
+    int value = isOn ? 1 : 0;
+    _database.child('deviceId/control/$switchName').set(value);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Data getaran untuk masing-masing sensor
-    final List<ChartData> chartData = getSampleVibrationData();
-
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
@@ -61,7 +113,9 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
                   border: Border.all(color: Colors.red[300]!, width: 2), // Border merah
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: buildVibrationChart(chartData), // Pass the chartData here
+                child: _isLoading 
+                  ? Center(child: CircularProgressIndicator()) 
+                  : buildVibrationChart(_chartData), // Pass the chartData here
               ),
               SizedBox(height: 20),
 
@@ -83,11 +137,11 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildVibrationCard('Vibrasi 1', '${chartData[0].value.toInt()} Kali'),
+                    child: _buildVibrationCard('Vibrasi 1', _chartData.isNotEmpty ? '${_chartData[0].value.toInt()} Kali' : 'N/A'),
                   ),
                   SizedBox(width: 10),
                   Expanded(
-                    child: _buildVibrationCard('Vibrasi 2', '${chartData[1].value.toInt()} Kali'),
+                    child: _buildVibrationCard('Vibrasi 2', _chartData.isNotEmpty ? '${_chartData[1].value.toInt()} Kali' : 'N/A'),
                   ),
                 ],
               ),
@@ -95,62 +149,33 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildVibrationCard('Vibrasi 3', '${chartData[2].value.toInt()} Kali'),
+                    child: _buildVibrationCard('Vibrasi 3', _chartData.isNotEmpty ? '${_chartData[2].value.toInt()} Kali' : 'N/A'),
                   ),
                   SizedBox(width: 10),
                   Expanded(
-                    child: _buildVibrationCard('Vibrasi 4', '${chartData[3].value.toInt()} Kali'),
+                    child: _buildVibrationCard('Vibrasi 4', _chartData.isNotEmpty ? '${_chartData[3].value.toInt()} Kali' : 'N/A'),
                   ),
                 ],
               ),
               SizedBox(height: 20),
 
-              // Switch Buzzer
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Buzzer',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Switch(
-                      value: false, // State of the switch (you can change this to manage state)
-                      onChanged: (value) {
-                        // Handle switch state change
-                      },
-                    ),
-                  ],
-                ),
-              ),
+                // Switch Buzzer
+                Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: buildControlCard('Buzzer', isBuzzerOn, 'switch buzzer'),
+                  ),
+                  SizedBox(width: 5),
+                ],
+              )
             ],
           ),
         ),
       ),
+      // Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-          switch (index) {
-            case 0:
-              Navigator.pushNamed(context, '/home');
-              break;
-            case 1:
-              Navigator.pushNamed(context, '/dashboard');
-              break;
-            case 2:
-              Navigator.pushNamed(context, '/profil');
-              break;
-          }
-        },
+        backgroundColor: Colors.red[300],
         items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.home, color: Colors.white),
@@ -165,6 +190,22 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
             label: '',
           ),
         ],
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white54,
+        currentIndex: 1, // Dashboard tab selected by default
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushNamed(context, '/home');
+              break;
+            case 1:
+              Navigator.pushNamed(context, '/dashboard');
+              break;
+            case 2:
+              Navigator.pushNamed(context, '/profil');
+              break;
+          }
+        },
       ),
     );
   }
@@ -186,4 +227,25 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
       ),
     );
   }
+
+Widget buildControlCard(String title, bool isOn, String switchName) {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ListTile(
+        title: Text(title),
+        subtitle: Text(isOn ? 'On' : 'Off'),
+        trailing: Switch(
+          value: isOn,
+          onChanged: (value) {
+            setState(() {
+              _updateSwitch(switchName, value);
+              if (switchName == 'switch buzzer') isBuzzerOn = value;
+            });
+          },
+        ),
+      ),
+    );
+  }
+
 }

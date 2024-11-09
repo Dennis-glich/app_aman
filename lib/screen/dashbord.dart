@@ -1,16 +1,90 @@
 import 'package:flutter/material.dart';
-import 'widget/gauge.dart';  // Pastikan ini mengimpor buildSensorCardWithGauge
-import 'preofilteam.dart';
-import 'getaran.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:app_aman/screen/widget/gauge.dart';
+import 'package:app_aman/screen/preofilteam.dart';
+import 'package:app_aman/screen/getaran.dart';
 import 'package:app_aman/screen/profil.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
+  @override
+  _DashboardPageState createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
+
+  String fullName = 'User';  // Default fullName in case not found
+  bool isBuzzerOn = false;
+  bool isDoorOpen = false;
+  bool isExhaustFanOn = false;
+  double gasLevel = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeData();
+    _fetchFullName(); // Fetch user's full name from Firebase
+  }
+
+  // Function to initialize data from Firebase (for control switches and gas level)
+  void _initializeData() {
+    _database.child('deviceId/control').once().then((DatabaseEvent event) {
+      final data = event.snapshot.value as Map;
+      setState(() {
+        isBuzzerOn = data['switch buzzer'] == 1;
+        isDoorOpen = data['switch pintu'] == 1;
+        isExhaustFanOn = data['switch exhaust fan'] == 1;
+      });
+    });
+
+    _database.child('deviceId/monitor/gas_value').onValue.listen((DatabaseEvent event) {
+      final value = event.snapshot.value;
+      setState(() {
+        gasLevel = value != null ? double.parse(value.toString()) : 0.0;
+      });
+    });
+  }
+
+  // Function to fetch the full name of the current user from Firebase
+  void _fetchFullName() {
+    String? userId = FirebaseAuth.instance.currentUser?.uid; // Get the logged-in user's UID
+    if (userId != null) {
+      _database.child('users/$userId/fullName').once().then((DatabaseEvent event) {
+        final data = event.snapshot.value;
+        setState(() {
+          fullName = data != null ? data.toString() : 'User'; // Set fullName or default
+        });
+      }).catchError((error) {
+        setState(() {
+          fullName = 'Error fetching name'; // Error handling
+        });
+      });
+    }
+  }
+
+  // Function to update switch status in Firebase
+  void _updateSwitch(String switchName, bool isOn) {
+    int value = isOn ? 1 : 0;
+    _database.child('deviceId/control/$switchName').set(value);
+  }
+
+  String formatDate(DateTime date) {
+    List<String> months = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    String day = date.day.toString();
+    String month = months[date.month - 1];
+    String year = date.year.toString();
+    return "$day $month $year";
+  }
 
   @override
   Widget build(BuildContext context) {
     DateTime now = DateTime.now();
-    String formattedDate = "${now.day}-${now.month}-${now.year}";
+    String formattedDate = formatDate(now);
 
     return Scaffold(
       key: scaffoldKey,
@@ -35,7 +109,7 @@ class DashboardPage extends StatelessWidget {
         ],
       ),
       drawer: Drawer(
-        width: 210,
+        width: 270,
         child: ListView(
           padding: EdgeInsets.zero,
           children: <Widget>[
@@ -48,8 +122,8 @@ class DashboardPage extends StatelessWidget {
                 children: [
                   Image.asset(
                     'assets/Aman .PNG',
-                    width: 45,
-                    height: 45,
+                    width: 40,
+                    height: 40,
                   ),
                   SizedBox(height: 10),
                   Text(
@@ -104,7 +178,7 @@ class DashboardPage extends StatelessWidget {
                   children: [
                     SizedBox(height: 10),
                     Text(
-                      'Hi, User',
+                      'Hi, $fullName', // Dynamic greeting with fullName
                       style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                     ),
                     Text(
@@ -135,29 +209,29 @@ class DashboardPage extends StatelessWidget {
                     Column(
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Expanded(
-                              child: buildControlCard('Buzzer', false),
+                              child: buildControlCard('Buzzer', isBuzzerOn, 'switch buzzer'),
                             ),
-                            SizedBox(width: 10),
+                            SizedBox(width: 5),
                             Expanded(
-                              child: buildControlCard('Pintu', true),
+                              child: buildControlCard('Pintu', isDoorOpen, 'switch pintu'),
                             ),
                           ],
                         ),
+                        SizedBox(height: 5),
+                        buildControlCard('Exhaust Fan', isExhaustFanOn, 'switch exhaust fan'),
                         SizedBox(height: 10),
-                        buildControlCard('Exhaust Fan', false),
-                        SizedBox(height: 20),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Expanded(
-                              child: buildSensorCardWithGauge('Gas & Asap', 300), // Memanggil gauge widget
+                              child: buildSensorCardWithGauge('Gas & Asap', gasLevel), // Gauge for gas level
                             ),
                             SizedBox(width: 10),
                             Expanded(
-                              child: buildGetaranCard(context), // Memanggil card getaran
+                              child: buildGetaranCard(context), // Getaran card
                             ),
                           ],
                         ),
@@ -208,7 +282,6 @@ class DashboardPage extends StatelessWidget {
           ),
         ],
       ),
-      // Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.red[300],
         items: [
@@ -245,23 +318,25 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget buildControlCard(String title, bool isActive) {
-    return Container(
-      height: 80,
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: TextStyle(fontSize: 16)),
-          Switch(
-            value: isActive,
-            onChanged: (value) {},
-          ),
-        ],
+  // Widget to build control cards (Buzzer, Pintu, Exhaust Fan)
+  Widget buildControlCard(String title, bool isOn, String switchName) {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ListTile(
+        title: Text(title),
+        subtitle: Text(isOn ? 'On' : 'Off'),
+        trailing: Switch(
+          value: isOn,
+          onChanged: (value) {
+            setState(() {
+              _updateSwitch(switchName, value);
+              if (switchName == 'switch buzzer') isBuzzerOn = value;
+              if (switchName == 'switch pintu') isDoorOpen = value;
+              if (switchName == 'switch exhaust fan') isExhaustFanOn = value;
+            });
+          },
+        ),
       ),
     );
   }

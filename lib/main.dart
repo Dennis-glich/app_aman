@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'screen/auth.dart';
 import 'screen/homescreen.dart';
 import 'screen/profil.dart';
+import 'screen/dashbord.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,12 +36,13 @@ class MyApp extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.done) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            home: WelcomeScreen(),
+            home: AuthWrapper(), // Wraps the logic for checking authentication
             routes: {
               '/home': (context) => HomeScreen(),
               '/register': (context) => RegisterPage(),
               '/signin': (context) => SignInPage(),
               '/profil': (context) => ProfilePage(),
+              '/dashboard': (context) => DashboardPage(),
             },
           );
         }
@@ -73,5 +76,25 @@ class MyApp extends StatelessWidget {
         options: DefaultFirebaseOptions.currentPlatform,
       );
     }
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(), // Listen to auth state changes
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(body: Center(child: CircularProgressIndicator())); // Show loading while checking auth
+        } else if (snapshot.hasData) {
+          // If user is logged in, navigate to Dashboard
+          return DashboardPage();
+        } else {
+          // If no user is logged in, show SignInPage
+          return SignInPage();
+        }
+      },
+    );
   }
 }

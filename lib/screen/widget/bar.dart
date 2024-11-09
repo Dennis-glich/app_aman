@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class ChartData {
   ChartData(this.sensor, this.value) : assert(value >= 0, 'Value cannot be negative');
@@ -8,15 +9,50 @@ class ChartData {
   final double value;
 }
 
-// Sample data for vibration monitoring
-List<ChartData> getSampleVibrationData() {
-  // Ensure that all values are non-null and valid
-  return [
-    ChartData('S1', 3), 
-    ChartData('S2', 4),
-    ChartData('S3', 5),
-    ChartData('S4', 1),
-  ];
+class VibrationChart extends StatefulWidget {
+  @override
+  _VibrationChartState createState() => _VibrationChartState();
+}
+
+class _VibrationChartState extends State<VibrationChart> {
+  final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
+  List<ChartData> _chartData = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchVibrationData();
+  }
+
+  void _fetchVibrationData() {
+    _databaseReference.child('deviceId/monitor/vib_value').once().then((DatabaseEvent event) {
+      final dataSnapshot = event.snapshot;
+      if (dataSnapshot.value != null) {
+        final Map<String, dynamic> data = Map<String, dynamic>.from(dataSnapshot.value as Map);
+        setState(() {
+          _chartData = data.entries.map((entry) => ChartData(entry.key, entry.value.toDouble())).toList();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }).catchError((error) {
+      setState(() {
+        _isLoading = false;
+      });
+      print('Error fetching data: $error');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _isLoading
+        ? Center(child: CircularProgressIndicator())
+        : buildVibrationChart(_chartData);
+  }
 }
 
 Widget buildVibrationChart(List<ChartData> chartData) {
@@ -38,7 +74,7 @@ Widget buildVibrationChart(List<ChartData> chartData) {
       primaryYAxis: NumericAxis(
         title: AxisTitle(text: ''),
         labelStyle: TextStyle(fontSize: 10),
-        maximum: 15, // Sesuaikan maksimum Y-axis sesuai data
+        maximum: 100, // Adjust the Y-axis max as needed
       ),
       series: <CartesianSeries>[
         BarSeries<ChartData, String>(
