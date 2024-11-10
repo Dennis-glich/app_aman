@@ -101,7 +101,7 @@ class HomeScreen extends StatelessWidget {
                     Navigator.pushNamed(context, '/register');
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: Color.fromRGBO(97, 15, 28, 1.0),
                     padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                     textStyle: TextStyle(fontSize: 18),
                   ),
