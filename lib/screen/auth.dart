@@ -269,9 +269,60 @@ class _RegisterPageState extends State<RegisterPage> {
                           icon: FaIcon(FontAwesomeIcons.instagram, color: Colors.brown),
                       ),
                       IconButton(
-                        onPressed: () {}, // Tambahkan logika untuk Google sign-in
-                        icon: FaIcon(FontAwesomeIcons.google, color: Colors.brown),
-                      ),
+                        onPressed: () async {
+                        try {
+                          // Mendapatkan userCredential setelah login dengan Google
+                          final userCredential = await _authService.signInWithGoogle();
+
+                          // Dapatkan UID pengguna dari userCredential
+                          String uid = userCredential.user?.uid ?? '';
+
+                          // Pastikan UID valid
+                          if (uid.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Login failed. UID is empty.')),
+                            );
+                            return;
+                          }
+
+                          // Ambil data pengguna (misalnya, nama dan email)
+                          String displayName = userCredential.user?.displayName ?? 'No Name';
+                          String email = userCredential.user?.email ?? 'No Email';
+
+                          // Simpan data ke Firestore
+                          await _databaseService.saveUserDataToFirestore(
+                            uid,
+                            displayName,
+                            email,
+                            '',  // Anda bisa mengosongkan password karena tidak diperlukan di sini
+                          );
+
+                          // Simpan data ke Firebase Realtime Database
+                          await _databaseService.saveDataToRealtimeDatabase(
+                            uid,
+                            displayName,
+                            email,
+                          );
+
+                          // Tampilkan pesan sukses login
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Login with Google successful!')),
+                          );
+
+                          // Navigasi ke halaman Dashboard setelah login berhasil
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => DashboardPage()),
+                          );
+                        } catch (e) {
+                          // Tampilkan pesan kesalahan jika login gagal
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Login with Google failed: ${e.toString()}')),
+                          );
+                        }
+                      },
+                      icon: FaIcon(FontAwesomeIcons.google, color: Colors.brown),
+                      )
                     ],
                   ),
                 ],
@@ -292,6 +343,8 @@ class SignInPage extends StatefulWidget {
 class _SignInPageState extends State<SignInPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  final DatabaseService _databaseService = DatabaseService();
   bool _passwordVisible = false;
 
   // Fungsi untuk login pengguna
@@ -462,8 +515,59 @@ class _SignInPageState extends State<SignInPage> {
                           icon: FaIcon(FontAwesomeIcons.instagram, color: Colors.brown),
                       ),
                       IconButton(
-                        onPressed: () {}, // Tambahkan logika untuk Google sign-in
-                        icon: FaIcon(FontAwesomeIcons.google, color: Colors.brown),
+onPressed: () async {
+                        try {
+                          // Mendapatkan userCredential setelah login dengan Google
+                          final userCredential = await _authService.signInWithGoogle();
+
+                          // Dapatkan UID pengguna dari userCredential
+                          String uid = userCredential.user?.uid ?? '';
+
+                          // Pastikan UID valid
+                          if (uid.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Login failed. UID is empty.')),
+                            );
+                            return;
+                          }
+
+                          // Ambil data pengguna (misalnya, nama dan email)
+                          String displayName = userCredential.user?.displayName ?? 'No Name';
+                          String email = userCredential.user?.email ?? 'No Email';
+
+                          // Simpan data ke Firestore
+                          await _databaseService.saveUserDataToFirestore(
+                            uid,
+                            displayName,
+                            email,
+                            '',  // Anda bisa mengosongkan password karena tidak diperlukan di sini
+                          );
+
+                          // Simpan data ke Firebase Realtime Database
+                          await _databaseService.saveDataToRealtimeDatabase(
+                            uid,
+                            displayName,
+                            email,
+                          );
+
+                          // Tampilkan pesan sukses login
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Login with Google successful!')),
+                          );
+
+                          // Navigasi ke halaman Dashboard setelah login berhasil
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => DashboardPage()),
+                          );
+                        } catch (e) {
+                          // Tampilkan pesan kesalahan jika login gagal
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Login with Google failed: ${e.toString()}')),
+                          );
+                        }
+                      },
+                      icon: FaIcon(FontAwesomeIcons.google, color: Colors.brown),
                       ),
                     ],
                   ),

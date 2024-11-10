@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class TeamProfilePage extends StatefulWidget {
@@ -7,6 +8,12 @@ class TeamProfilePage extends StatefulWidget {
 
 class _TeamProfilePageState extends State<TeamProfilePage> {
 
+  // Function to log out the user
+  Future<void> _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut(); // Log out from Firebase and Google
+    Navigator.pushReplacementNamed(context, '/home'); // Redirect to login page
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,10 +78,13 @@ class _TeamProfilePageState extends State<TeamProfilePage> {
       ),
       // Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.red[300],
+        backgroundColor: const Color.fromRGBO(97, 15, 28, 1.0),
         items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home, color: Colors.white),
+            icon: GestureDetector(
+              onTap: () => _logout(context), // Call logout function
+              child: Icon(Icons.logout, color: Colors.white),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
@@ -88,11 +98,11 @@ class _TeamProfilePageState extends State<TeamProfilePage> {
         ],
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white54,
-        currentIndex: 1, // Dashboard tab selected by default
+        currentIndex: 2, // Profile tab selected by default
         onTap: (index) {
           switch (index) {
             case 0:
-              Navigator.pushNamed(context, '/home');
+              _logout(context); // Logout if logout icon is tapped
               break;
             case 1:
               Navigator.pushNamed(context, '/dashboard');

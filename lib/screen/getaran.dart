@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -14,6 +15,12 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
   List<ChartData> _chartData = [];
   bool _isLoading = true;
   bool isBuzzerOn = false; // Add state for the buzzer switch
+
+  // Function to log out the user
+  Future<void> _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut(); // Log out from Firebase and Google
+    Navigator.pushReplacementNamed(context, '/home'); // Redirect to login page
+  }
 
   @override
   void initState() {
@@ -93,29 +100,36 @@ void _fetchVibrationData() {
             children: [
               SizedBox(height: kToolbarHeight + 20),
               // Tanggal dengan border dan background
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.red[300],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.redAccent, width: 1),
-                ),
-                child: Text(
-                  dateRange,
-                  style: TextStyle(fontSize: 20, color: Colors.white),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 357,
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Color.fromRGBO(97, 15, 28, 1.0),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center( // Menambahkan widget Center agar teks berada di tengah
+                      child: Text(
+                        dateRange,
+                        style: TextStyle(fontSize: 20, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 30),
+              SizedBox(height: 20),
 
               // Container untuk Graph/Chart dengan border merah
               Container(
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.red[300]!, width: 2), // Border merah
+                  border: Border.all(color: Color.fromRGBO(97, 15, 28, 1.0), width: 2), // Border merah
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: _isLoading 
                   ? Center(child: CircularProgressIndicator()) 
-                  : buildVibrationChart(_chartData), // Pass the chartData here
+                  : buildVibrationChart(_chartData),
               ),
               SizedBox(height: 20),
 
@@ -123,11 +137,13 @@ void _fetchVibrationData() {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.bar_chart, color: Colors.red[300]),
+                  Icon(Icons.bar_chart,
+                   color: Color.fromRGBO(97, 15, 28, 1.0),
+                   ),
                   SizedBox(width: 5),
                   Text(
                     'Data Masing-Masing Sensor',
-                    style: TextStyle(fontSize: 18, color: Colors.red[300]),
+                    style: TextStyle(fontSize: 18, color: Color.fromRGBO(97, 15, 28, 1.0)),
                   ),
                 ],
               ),
@@ -175,10 +191,13 @@ void _fetchVibrationData() {
       ),
       // Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.red[300],
+        backgroundColor: const Color.fromRGBO(97, 15, 28, 1.0),
         items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home, color: Colors.white),
+            icon: GestureDetector(
+              onTap: () => _logout(context), // Call logout function
+              child: Icon(Icons.logout, color: Colors.white),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
@@ -192,11 +211,11 @@ void _fetchVibrationData() {
         ],
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white54,
-        currentIndex: 1, // Dashboard tab selected by default
+        currentIndex: 2, // Profile tab selected by default
         onTap: (index) {
           switch (index) {
             case 0:
-              Navigator.pushNamed(context, '/home');
+              _logout(context); // Logout if logout icon is tapped
               break;
             case 1:
               Navigator.pushNamed(context, '/dashboard');

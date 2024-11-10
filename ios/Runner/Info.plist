@@ -65,5 +65,10 @@
 		</dict>
 	</array>
 	<!-- End of the Google Sign-in Section -->
+	<!-- Izin untuk membuka aplikasi Instagram -->
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>instagram</string>
+    </array>
 </dict>
 </plist>

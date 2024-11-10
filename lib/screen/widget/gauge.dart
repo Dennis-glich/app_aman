@@ -28,7 +28,7 @@ Widget buildSensorCardWithGauge(String title, double reading) {
                 startAngle: 0,
                 endAngle: 360,
                 minimum: 0,
-                maximum: 1000,
+                maximum: 2000,
                 showTicks: false,
                 showLabels: false,
                 axisLineStyle: AxisLineStyle(thickness: 10),
@@ -36,7 +36,7 @@ Widget buildSensorCardWithGauge(String title, double reading) {
                   RangePointer(
                     value: reading,
                     width: 10,
-                    color: Color(0xFFFFCD60),
+                    color: Color.fromRGBO(97, 15, 28, 1.0),
                     enableAnimation: true,
                     cornerStyle: CornerStyle.bothCurve,
                   ),

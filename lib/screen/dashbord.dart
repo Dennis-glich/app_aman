@@ -21,6 +21,12 @@ class _DashboardPageState extends State<DashboardPage> {
   bool isExhaustFanOn = false;
   double gasLevel = 0.0;
 
+  // Function to log out the user
+  Future<void> _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut(); // Log out from Firebase and Google
+    Navigator.pushReplacementNamed(context, '/home'); // Redirect to login page
+  }
+
   @override
   void initState() {
     super.initState();
@@ -115,7 +121,7 @@ class _DashboardPageState extends State<DashboardPage> {
           children: <Widget>[
             DrawerHeader(
               decoration: BoxDecoration(
-                color: Colors.red[300],
+                color: Color.fromRGBO(97, 15, 28, 1.0),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,13 +199,16 @@ class _DashboardPageState extends State<DashboardPage> {
                           width: 350,
                           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                           decoration: BoxDecoration(
-                            color: Colors.red[300],
+                            color: Color.fromRGBO(97, 15, 28, 1.0),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Center(
                             child: Text(
                               'Today, $formattedDate',
-                              style: TextStyle(fontSize: 16),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
@@ -242,7 +251,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       width: double.infinity,
                       padding: EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.red[300],
+                        color: Color.fromRGBO(97, 15, 28, 1.0),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
@@ -282,11 +291,16 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
+      
+      // Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.red[300],
+        backgroundColor: const Color.fromRGBO(97, 15, 28, 1.0),
         items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home, color: Colors.white),
+            icon: GestureDetector(
+              onTap: () => _logout(context), // Call logout function
+              child: Icon(Icons.logout, color: Colors.white),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
@@ -300,14 +314,14 @@ class _DashboardPageState extends State<DashboardPage> {
         ],
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white54,
-        currentIndex: 1, // Dashboard tab selected by default
+        currentIndex: 2, // Profile tab selected by default
         onTap: (index) {
           switch (index) {
             case 0:
-              Navigator.pushNamed(context, '/home');
+              _logout(context); // Logout if logout icon is tapped
               break;
             case 1:
-              // Tetap di halaman Dashboard
+              Navigator.pushNamed(context, '/dashboard');
               break;
             case 2:
               Navigator.pushNamed(context, '/profil');
