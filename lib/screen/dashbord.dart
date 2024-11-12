@@ -20,6 +20,7 @@ class _DashboardPageState extends State<DashboardPage> {
   bool isDoorOpen = false;
   bool isExhaustFanOn = false;
   double gasLevel = 0.0;
+  String statusMessage = 'Unreadable'; // Default status message
 
   // Function to log out the user
   Future<void> _logout(BuildContext context) async {
@@ -34,7 +35,7 @@ class _DashboardPageState extends State<DashboardPage> {
     _fetchFullName(); // Fetch user's full name from Firebase
   }
 
-  // Function to initialize data from Firebase (for control switches and gas level)
+  // Function to initialize data from Firebase (for control switches, gas level, and status)
   void _initializeData() {
     _database.child('deviceId/control').once().then((DatabaseEvent event) {
       final data = event.snapshot.value as Map;
@@ -49,6 +50,23 @@ class _DashboardPageState extends State<DashboardPage> {
       final value = event.snapshot.value;
       setState(() {
         gasLevel = value != null ? double.parse(value.toString()) : 0.0;
+      });
+    });
+
+    // Listen for changes in the status value from Firebase
+    _database.child('deviceId/status').onValue.listen((DatabaseEvent event) {
+      final status = event.snapshot.value;
+      setState(() {
+        // Set the status message based on the value from Firebase
+        if (status == 0) {
+          statusMessage = 'Aman';
+        } else if (status == 1) {
+          statusMessage = 'Bahaya';
+        } else if (status == 2) {
+          statusMessage = 'Sangat Berbahaya';
+        } else {
+          statusMessage = 'Status Tidak Diketahui';
+        }
       });
     });
   }
@@ -182,9 +200,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: 10),
+                    SizedBox(height: 1),
                     Text(
-                      'Hi, $fullName', // Dynamic greeting with fullName
+                      'Hi, $fullName',
                       style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                     ),
                     Text(
@@ -274,7 +292,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                           SizedBox(height: 10),
                           Text(
-                            'Aman',
+                            statusMessage, // Display dynamic status message
                             style: TextStyle(
                               fontSize: 24,
                               color: Colors.white,

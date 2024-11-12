@@ -25,7 +25,9 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
   @override
   void initState() {
     super.initState();
-    _fetchVibrationData(); // Fetch vibration data when the page is loaded
+    _listenToVibrationData();   // Mendengarkan `vib_value` untuk menambah `vib_total`.
+    _fetchVibrationTotalData(); // Menampilkan data `vib_total` di grafik.
+    _resetIfNewMonth(); 
     _initializeData(); // Listen to buzzer state changes from Firebase
   }
 
@@ -39,30 +41,60 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
     });
   }
 
-void _fetchVibrationData() {
-  List<String> sensorKeys = ['S1', 'S2', 'S3', 'S4'];
-  List<ChartData> fetchedData = [];
+void _listenToVibrationData() {
+  _database.child('deviceId/monitor/vib_value').onValue.listen((DatabaseEvent event) {
+    final dataSnapshot = event.snapshot;
+    if (dataSnapshot.value != null) {
+      final Map<String, dynamic> data = Map<String, dynamic>.from(dataSnapshot.value as Map);
 
-  // Loop through each sensor path to get data individually
-  Future.wait(sensorKeys.map((sensor) {
-    return _database.child('deviceId/monitor/vib_value/$sensor').once().then((DatabaseEvent event) {
-      final data = event.snapshot.value;
-      
-      // Check if data is int or double, otherwise set default to 0
-      double value = (data is int) ? data.toDouble() : (data is double ? data : 0.0);
-      
-      fetchedData.add(ChartData(sensor, value));
-    });
-  })).then((_) {
-    setState(() {
-      _chartData = fetchedData;
-      _isLoading = false;
-    });
-  }).catchError((error) {
-    setState(() {
-      _isLoading = false;
-    });
-    print('Error fetching vibration data: $error');
+      // Tambahkan jumlah getaran ke Firebase di `vib_total` jika `vib_value` adalah 1
+      data.forEach((sensor, value) {
+        if (value == 1) {
+          _database.child('deviceId/monitor/vib_total/$sensor').once().then((DatabaseEvent totalEvent) {
+            final currentTotal = (totalEvent.snapshot.value ?? 0) as int;
+            _database.child('deviceId/monitor/vib_total/$sensor').set(currentTotal + 1);
+          });
+        }
+      });
+    }
+  });
+}
+
+void _fetchVibrationTotalData() {
+  _database.child('deviceId/monitor/vib_total').onValue.listen((DatabaseEvent event) {
+    final dataSnapshot = event.snapshot;
+    if (dataSnapshot.value != null) {
+      final Map<String, dynamic> data = Map<String, dynamic>.from(dataSnapshot.value as Map);
+
+      setState(() {
+        _chartData = data.entries.map((entry) => ChartData(entry.key, entry.value.toDouble())).toList();
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  });
+}
+
+void _resetIfNewMonth() {
+  final currentMonth = DateTime.now().month;
+  _database.child('deviceId/monitor/last_reset_month').once().then((DatabaseEvent event) {
+    final lastMonth = event.snapshot.value ?? currentMonth;
+
+    if (lastMonth != currentMonth) {
+      // Reset total getaran untuk semua sensor
+      _database.child('deviceId/monitor/vib_total').set({
+        'S1': 0,
+        'S2': 0,
+        'S3': 0,
+        'S4': 0,
+      });
+
+      // Simpan bulan reset terakhir di Firebase
+      _database.child('deviceId/monitor/last_reset_month').set(currentMonth);
+    }
   });
 }
 
