@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:app_aman/screen/dashbord.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:app_aman/screen/services/auth_service.dart';
 import 'package:app_aman/screen/services/database_service.dart';
