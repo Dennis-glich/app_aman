@@ -28,7 +28,7 @@ Widget buildSensorCardWithGauge(String title, double reading) {
                 startAngle: 0,
                 endAngle: 360,
                 minimum: 0,
-                maximum: 5000,
+                maximum: 4095,
                 showTicks: false,
                 showLabels: false,
                 axisLineStyle: AxisLineStyle(thickness: 10),

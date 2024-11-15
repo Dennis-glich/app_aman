@@ -255,20 +255,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
-                          onPressed: () async {
-                            final Uri url = Uri.parse('https://www.instagram.com/aman_indobot/');
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(
-                                url,
-                                mode: LaunchMode.externalApplication,
-                              );
-                            } else {
-                              throw 'Could not launch $url';
-                            }
-                          },
-                          icon: FaIcon(FontAwesomeIcons.instagram, color: Colors.brown),
-                      ),
-                      IconButton(
                         onPressed: () async {
                         try {
                           // Mendapatkan userCredential setelah login dengan Google
@@ -502,20 +488,6 @@ class _SignInPageState extends State<SignInPage> {
                     children: [
                       IconButton(
                           onPressed: () async {
-                            final Uri url = Uri.parse('https://www.instagram.com/aman_indobot/');
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(
-                                url,
-                                mode: LaunchMode.externalApplication,
-                              );
-                            } else {
-                              throw 'Could not launch $url';
-                            }
-                          },
-                          icon: FaIcon(FontAwesomeIcons.instagram, color: Colors.brown),
-                      ),
-                      IconButton(
-onPressed: () async {
                         try {
                           // Mendapatkan userCredential setelah login dengan Google
                           final userCredential = await _authService.signInWithGoogle();
