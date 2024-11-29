@@ -73,7 +73,7 @@ class DefaultFirebaseOptions {
     authDomain: 'aman-8a19f.firebaseapp.com',
     storageBucket: 'aman-8a19f.appspot.com',
     measurementId: 'G-RHPPTRKT04',
-    databaseURL: 'https://aman-8a19f.firebaseio.com',
+    databaseURL: 'https://aman-8a19f-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 
 }

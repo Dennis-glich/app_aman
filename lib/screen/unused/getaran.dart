@@ -1,8 +1,9 @@
+//getaran.dart 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'widget/bar.dart'; // Assuming 'buildVibrationChart' is defined in 'widget/bar.dart'
+import 'bar.dart';
 
 class GetaranMonitoring extends StatefulWidget {
   @override
@@ -25,9 +26,7 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
   @override
   void initState() {
     super.initState();
-    _listenToVibrationData();   // Mendengarkan `vib_value` untuk menambah `vib_total`.
     _fetchVibrationTotalData(); // Menampilkan data `vib_total` di grafik.
-    _resetIfNewMonth(); 
     _initializeData(); // Listen to buzzer state changes from Firebase
   }
 
@@ -41,24 +40,6 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
     });
   }
 
-void _listenToVibrationData() {
-  _database.child('deviceId/monitor/vib_value').onValue.listen((DatabaseEvent event) {
-    final dataSnapshot = event.snapshot;
-    if (dataSnapshot.value != null) {
-      final Map<String, dynamic> data = Map<String, dynamic>.from(dataSnapshot.value as Map);
-
-      // Tambahkan jumlah getaran ke Firebase di `vib_total` jika `vib_value` adalah 1
-      data.forEach((sensor, value) {
-        if (value == 1) {
-          _database.child('deviceId/monitor/vib_total/$sensor').once().then((DatabaseEvent totalEvent) {
-            final currentTotal = (totalEvent.snapshot.value ?? 0) as int;
-            _database.child('deviceId/monitor/vib_total/$sensor').set(currentTotal + 1);
-          });
-        }
-      });
-    }
-  });
-}
 
 void _fetchVibrationTotalData() {
   _database.child('deviceId/monitor/vib_total').onValue.listen((DatabaseEvent event) {
@@ -78,31 +59,22 @@ void _fetchVibrationTotalData() {
   });
 }
 
-void _resetIfNewMonth() {
-  final currentMonth = DateTime.now().month;
-  _database.child('deviceId/monitor/last_reset_month').once().then((DatabaseEvent event) {
-    final lastMonth = event.snapshot.value ?? currentMonth;
+void _updateSwitch(String switchType, bool isOn) {
+  int value = isOn ? 1 : 0;
 
-    if (lastMonth != currentMonth) {
-      // Reset total getaran untuk semua sensor
-      _database.child('deviceId/monitor/vib_total').set({
-        'S1': 0,
-        'S2': 0,
-        'S3': 0,
-        'S4': 0,
-      });
-
-      // Simpan bulan reset terakhir di Firebase
-      _database.child('deviceId/monitor/last_reset_month').set(currentMonth);
-    }
-  });
-}
-
-  // Function to update switch status in Firebase
-  void _updateSwitch(String switchName, bool isOn) {
-    int value = isOn ? 1 : 0;
-    _database.child('deviceId/control/$switchName').set(value);
+  // Tentukan path berdasarkan tipe switch
+  String path;
+  switch (switchType) {
+    case 'switch buzzer':
+      path = 'switch_buzzer';
+      break;
+    default:
+      throw ArgumentError('Switch type tidak valid: $switchType');
   }
+
+  // Update nilai di Firebase
+  _database.child('deviceId/control/$path').set(value);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -221,6 +193,7 @@ void _resetIfNewMonth() {
           ),
         ),
       ),
+
       // Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color.fromRGBO(97, 15, 28, 1.0),
@@ -279,24 +252,32 @@ void _resetIfNewMonth() {
     );
   }
 
-Widget buildControlCard(String title, bool isOn, String switchName) {
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        title: Text(title),
-        subtitle: Text(isOn ? 'On' : 'Off'),
-        trailing: Switch(
-          value: isOn,
-          onChanged: (value) {
-            setState(() {
-              _updateSwitch(switchName, value);
-              if (switchName == 'switch buzzer') isBuzzerOn = value;
+  Widget buildControlCard(String title, bool isOn, String switchType) {
+      return Card(
+        elevation: 5,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        child: ListTile(
+          title: Text(title),
+          subtitle: Text(isOn ? 'On' : 'Off'),
+          trailing: Switch(
+            value: isOn,
+            onChanged: (value) {
+              setState(() {
+                // Perbarui nilai switch di Firebase
+              _updateSwitch(switchType, value);
+
+              // Perbarui status switch lokal
+              switch (switchType) {
+                case 'switch buzzer':
+                  isBuzzerOn = value; // Update untuk buzzer
+                  break;
+                default:
+                  throw ArgumentError('Switch type tidak valid: $switchType');
+              }
             });
           },
         ),
       ),
     );
   }
-
 }

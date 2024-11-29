@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:app_aman/screen/widget/gauge.dart';
 import 'package:app_aman/screen/preofilteam.dart';
-import 'package:app_aman/screen/getaran.dart';
+import 'package:app_aman/screen/Vibrasi.dart';
 import 'package:app_aman/screen/profil.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -15,24 +15,19 @@ class _DashboardPageState extends State<DashboardPage> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
-  String fullName = 'User';  // Default fullName in case not found
+  String fullName = 'User';
   bool isBuzzerOn = false;
   bool isDoorOpen = false;
   bool isExhaustFanOn = false;
   double gasLevel = 0.0;
-  String statusMessage = 'Unreadable'; // Default status message
+  String statusMessage = 'Unreadable';
 
-  // Function to log out the user
-  Future<void> _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut(); // Log out from Firebase and Google
-    Navigator.pushReplacementNamed(context, '/home'); // Redirect to login page
-  }
 
   @override
   void initState() {
     super.initState();
     _initializeData();
-    _fetchFullName(); // Fetch user's full name from Firebase
+    _fetchFullName();
   }
 
   // Function to initialize data from Firebase (for control switches, gas level, and status)
@@ -54,7 +49,7 @@ class _DashboardPageState extends State<DashboardPage> {
     });
 
     // Listen for changes in the status value from Firebase
-    _database.child('deviceId/status').onValue.listen((DatabaseEvent event) {
+    _database.child('deviceId/monitor/status').onValue.listen((DatabaseEvent event) {
       final status = event.snapshot.value;
       setState(() {
         // Set the status message based on the value from Firebase
@@ -88,10 +83,33 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  // Function to update switch status in Firebase
-  void _updateSwitch(String switchName, bool isOn) {
+  // Function to log out the user
+  Future<void> _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut(); // Log out from Firebase and Google
+    Navigator.pushReplacementNamed(context, '/welcome'); // Redirect to login page
+  }
+
+  void _updateSwitch(String switchType, bool isOn) {
     int value = isOn ? 1 : 0;
-    _database.child('deviceId/control/$switchName').set(value);
+
+    // Tentukan path berdasarkan tipe switch
+    String path;
+    switch (switchType) {
+      case 'switch pintu':
+        path = 'switch_pintu';
+        break;
+      case 'switch exhaust fan':
+        path = 'switch_exhaust';
+        break;
+      case 'switch buzzer':
+        path = 'switch_buzzer';
+        break;
+      default:
+        throw ArgumentError('Switch type tidak valid: $switchType');
+    }
+
+    // Update nilai di Firebase
+    _database.child('deviceId/control/$path').set(value);
   }
 
   String formatDate(DateTime date) {
@@ -113,10 +131,10 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       key: scaffoldKey,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Color.fromRGBO(97, 15, 28, 1.0),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.menu, size: 32),
+          icon: Icon(Icons.menu,color: Colors.white, size: 32),
           onPressed: () {
             scaffoldKey.currentState?.openDrawer();
           },
@@ -146,12 +164,12 @@ class _DashboardPageState extends State<DashboardPage> {
                 children: [
                   Image.asset(
                     'assets/Aman .PNG',
-                    width: 40,
-                    height: 40,
+                    width: 45,
+                    height: 45,
                   ),
-                  SizedBox(height: 10),
+                  SizedBox(height: 55),
                   Text(
-                    'AMAN',
+                    'AMAN Ajaaa',
                     style: TextStyle(
                       fontSize: 24,
                       color: Colors.white,
@@ -181,9 +199,34 @@ class _DashboardPageState extends State<DashboardPage> {
                 );
               },
             ),
+            // Add Emergency Stop button at the bottom
+            //Padding(
+              //padding: const EdgeInsets.only(top: 10.0),
+              //child: ListTile(
+                //leading: Icon(Icons.stop, color: Colors.red),
+                //title: Text('Emergency Stop', style: TextStyle(color: Colors.red)),
+                //onTap: () {
+                  // Handle the emergency stop action
+                  //_emergencyStop();
+                //},
+              //),
+            //),
           ],
         ),
       ),
+
+// Function to handle the emergency stop
+//void _emergencyStop() {
+  // Add the logic for emergency stop, for example:
+  // Send a signal to the Firebase or stop devices immediately
+//  print("Emergency stop triggered!");
+  // Example: You might want to turn off all switches or devices.
+ // _updateSwitch('switch buzzer', false);
+ // _updateSwitch('switch pintu', false);
+ // _updateSwitch('switch exhaust fan', false);
+  // Navigate to emergency page or show a confirmation dialog
+//}
+
       body: Stack(
         children: [
           Positioned.fill(
@@ -214,7 +257,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 350,
+                          width: MediaQuery.of(context).size.width * 0.9,
                           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                           decoration: BoxDecoration(
                             color: Color.fromRGBO(97, 15, 28, 1.0),
@@ -254,11 +297,11 @@ class _DashboardPageState extends State<DashboardPage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Expanded(
-                              child: buildSensorCardWithGauge('Gas & Asap', gasLevel), // Gauge for gas level
+                              child: buildSensorCardWithGauge('Gas & Asap', gasLevel),
                             ),
                             SizedBox(width: 10),
                             Expanded(
-                              child: buildGetaranCard(context), // Getaran card
+                              child: buildGetaranCard(context),
                             ),
                           ],
                         ),
@@ -284,6 +327,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                           SizedBox(height: 10),
                           Container(
+                            width: MediaQuery.of(context).size.width * 0.9,
                             height: 100,
                             child: Image.asset(
                               'assets/Vector.png',
@@ -292,7 +336,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                           SizedBox(height: 10),
                           Text(
-                            statusMessage, // Display dynamic status message
+                            statusMessage,
                             style: TextStyle(
                               fontSize: 24,
                               color: Colors.white,
@@ -319,20 +363,20 @@ class _DashboardPageState extends State<DashboardPage> {
               onTap: () => _logout(context), // Call logout function
               child: Icon(Icons.logout, color: Colors.white),
             ),
-            label: '',
+            label: 'Logout',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard, color: Colors.white),
-            label: '',
+            label: 'Dashboard',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person, color: Colors.white),
-            label: '',
+            label: 'Profile',
           ),
         ],
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white54,
-        currentIndex: 2, // Profile tab selected by default
+        currentIndex: 1, // Profile tab selected by default
         onTap: (index) {
           switch (index) {
             case 0:
@@ -351,21 +395,34 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // Widget to build control cards (Buzzer, Pintu, Exhaust Fan)
-  Widget buildControlCard(String title, bool isOn, String switchName) {
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        title: Text(title),
-        subtitle: Text(isOn ? 'On' : 'Off'),
-        trailing: Switch(
-          value: isOn,
-          onChanged: (value) {
-            setState(() {
-              _updateSwitch(switchName, value);
-              if (switchName == 'switch buzzer') isBuzzerOn = value;
-              if (switchName == 'switch pintu') isDoorOpen = value;
-              if (switchName == 'switch exhaust fan') isExhaustFanOn = value;
+  Widget buildControlCard(String title, bool isOn, String switchType) {
+      return Card(
+        elevation: 5,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        child: ListTile(
+          title: Text(title),
+          subtitle: Text(isOn ? 'On' : 'Off'),
+          trailing: Switch(
+            value: isOn,
+            onChanged: (value) {
+              setState(() {
+                // Perbarui nilai switch di Firebase
+              _updateSwitch(switchType, value);
+
+              // Perbarui status switch lokal
+              switch (switchType) {
+                case 'switch pintu':
+                  isDoorOpen = value;
+                  break;
+                case 'switch exhaust fan':
+                  isExhaustFanOn = value;
+                  break;
+                case 'switch buzzer':
+                  isBuzzerOn = value;
+                  break;
+                default:
+                  throw ArgumentError('Switch type tidak valid: $switchType');
+              }
             });
           },
         ),

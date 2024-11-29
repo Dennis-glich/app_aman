@@ -38,6 +38,7 @@ class MyApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             home: AuthWrapper(), // Wraps the logic for checking authentication
             routes: {
+              '/welcome': (context) => WelcomeScreen(),
               '/home': (context) => HomeScreen(),
               '/register': (context) => RegisterPage(),
               '/signin': (context) => SignInPage(),
@@ -92,7 +93,7 @@ class AuthWrapper extends StatelessWidget {
           return DashboardPage();
         } else {
           // If no user is logged in, show SignInPage
-          return SignInPage();
+          return WelcomeScreen();
         }
       },
     );

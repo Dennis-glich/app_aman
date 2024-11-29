@@ -52,7 +52,7 @@ class _ProfilePageState extends State<ProfilePage> {
   // Function to log out the user
   Future<void> _logout(BuildContext context) async {
     await FirebaseAuth.instance.signOut(); // Log out from Firebase and Google
-    Navigator.pushReplacementNamed(context, '/home'); // Redirect to login page
+    Navigator.pushReplacementNamed(context, '/welcome'); // Redirect to login page
   }
 
   @override
@@ -145,15 +145,15 @@ class _ProfilePageState extends State<ProfilePage> {
               onTap: () => _logout(context), // Call logout function
               child: Icon(Icons.logout, color: Colors.white),
             ),
-            label: '',
+            label: 'Logout',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard, color: Colors.white),
-            label: '',
+            label: 'Dashboard',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person, color: Colors.white),
-            label: '',
+            label: 'Profile',
           ),
         ],
         selectedItemColor: Colors.white,
@@ -162,7 +162,7 @@ class _ProfilePageState extends State<ProfilePage> {
         onTap: (index) {
           switch (index) {
             case 0:
-              _logout(context); // Logout if logout icon is tapped
+              _logout(context);
               break;
             case 1:
               Navigator.pushNamed(context, '/dashboard');

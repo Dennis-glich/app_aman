@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/material.dart';
 
 class GoogleService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -26,13 +27,17 @@ class GoogleService {
   }
 
   // Sign out from Google and Firebase
-  Future<void> signOut() async {
-    try {
-      await _googleSignIn.signOut(); // Sign out from Google
-      await _auth.signOut(); // Sign out from Firebase
-      print("User signed out successfully");
-    } catch (e) {
-      print("Error signing out: $e");
+  Future<void> signOut(BuildContext context) async {
+  try {
+    await _googleSignIn.signOut(); // Sign out from Google
+    await _auth.signOut(); // Sign out from Firebase
+    print("User signed out successfully");
+
+    // Navigasi ke halaman welcome
+    Navigator.pushReplacementNamed(context, '/welcome');
+    } 
+    catch (e) {
+    print("Error signing out: $e");
     }
   }
 }

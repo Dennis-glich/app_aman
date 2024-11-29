@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:app_aman/screen/widget/gauge.dart';
 import 'package:app_aman/screen/preofilteam.dart';
-import 'package:app_aman/screen/getaran.dart';
+import 'package:app_aman/screen/unused/getaran.dart';
 import 'package:app_aman/screen/profil.dart';
 
 class DashboardPage extends StatefulWidget {
