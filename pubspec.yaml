@@ -64,6 +64,7 @@ flutter:
     - assets/default_profil.png
     - assets/chart_line.png
     - assets/Vector.png
+    - assets/Graph.gif
 
   fonts:
     - family: HammersmithOne  # Tambahkan font custom jika diperlukan untuk teks

@@ -2,6 +2,7 @@ import 'package:app_aman/screen/widget/line.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -60,6 +61,20 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
       print('Error fetching data: $e');
     }
   }
+
+  Future<void> _launchURL(String url) async {
+  final Uri uri = Uri.parse(url); // Parse string URL ke dalam objek Uri
+
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication, // Membuka dengan aplikasi eksternal (browser)
+    );
+  } else {
+    throw 'Could not launch $url';
+  }
+}
+
 
   void _initializeData() {
     _database.child('deviceId/control').once().then((DatabaseEvent event) {
@@ -188,7 +203,7 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
                   ),
                 ],
               ),
-              SizedBox(height: 10),
+              SizedBox(height: 5),
               Row(
                 children: [
                   Expanded(
@@ -200,8 +215,20 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
                   ),
                 ],
               ),
-              SizedBox(height: 20),
-
+              SizedBox(height: 5),
+               GestureDetector(
+                  onTap: () => _launchURL('https://docs.google.com/spreadsheets/d/1k5xMMhA5_t75juJYjNpWNzxGE_lJrA8hL5Zn2De-nwc/edit?usp=sharing'),
+                  child: Text(
+                    'Klik di sini untuk informasi lebih lanjut',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

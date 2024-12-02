@@ -18,6 +18,7 @@ class _DashboardPageState extends State<DashboardPage> {
   String fullName = 'User';
   bool isBuzzerOn = false;
   bool isDoorOpen = false;
+  bool isDoorManual =  false;
   bool isExhaustFanOn = false;
   double gasLevel = 0.0;
   String statusMessage = 'Unreadable';
@@ -38,6 +39,7 @@ class _DashboardPageState extends State<DashboardPage> {
         isBuzzerOn = data['switch buzzer'] == 1;
         isDoorOpen = data['switch pintu'] == 1;
         isExhaustFanOn = data['switch exhaust fan'] == 1;
+        isDoorManual = data['switch kontrol pintu'] == 1;
       });
     });
 
@@ -95,9 +97,12 @@ class _DashboardPageState extends State<DashboardPage> {
     // Tentukan path berdasarkan tipe switch
     String path;
     switch (switchType) {
+      case 'switch kontrol pintu':
+        path = 'switch_kontrolPintu';
+        break;
       case 'switch pintu':
         path = 'switch_pintu';
-        break;
+      break;
       case 'switch exhaust fan':
         path = 'switch_exhaust';
         break;
@@ -110,6 +115,28 @@ class _DashboardPageState extends State<DashboardPage> {
 
     // Update nilai di Firebase
     _database.child('deviceId/control/$path').set(value);
+  }
+
+  void _showInfoDialog(BuildContext context, String title) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Informasi"),
+        content: SingleChildScrollView(
+        child: Text(
+          "Switch pintu hanya akan berfungsi bilamana switch kontrol dalam keadaan manual, jika tidak maka pintu hanya akan bergerak sesuai arahan alat.",
+          textAlign: TextAlign.justify, // Atur perataan teks menjadi justify
+          style: TextStyle(fontSize: 14), // Tambahkan styling jika diperlukan
+        ),
+      ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text("Tutup"),
+          ),
+        ],
+      ),
+    );
   }
 
   String formatDate(DateTime date) {
@@ -199,33 +226,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 );
               },
             ),
-            // Add Emergency Stop button at the bottom
-            //Padding(
-              //padding: const EdgeInsets.only(top: 10.0),
-              //child: ListTile(
-                //leading: Icon(Icons.stop, color: Colors.red),
-                //title: Text('Emergency Stop', style: TextStyle(color: Colors.red)),
-                //onTap: () {
-                  // Handle the emergency stop action
-                  //_emergencyStop();
-                //},
-              //),
-            //),
           ],
         ),
       ),
-
-// Function to handle the emergency stop
-//void _emergencyStop() {
-  // Add the logic for emergency stop, for example:
-  // Send a signal to the Firebase or stop devices immediately
-//  print("Emergency stop triggered!");
-  // Example: You might want to turn off all switches or devices.
- // _updateSwitch('switch buzzer', false);
- // _updateSwitch('switch pintu', false);
- // _updateSwitch('switch exhaust fan', false);
-  // Navigate to emergency page or show a confirmation dialog
-//}
 
       body: Stack(
         children: [
@@ -282,16 +285,29 @@ class _DashboardPageState extends State<DashboardPage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Expanded(
-                              child: buildControlCard('Buzzer', isBuzzerOn, 'switch buzzer'),
+                              child: buildControlCard('Buzzer', isBuzzerOn, 'switch buzzer', 'Nyala', 'Mati'),
                             ),
-                            SizedBox(width: 5),
+                            SizedBox(width: 3),
                             Expanded(
-                              child: buildControlCard('Pintu', isDoorOpen, 'switch pintu'),
+                              child: buildControlCard('Exhaus', isExhaustFanOn, 'switch exhaust fan', 'Nyala', 'Mati'),
                             ),
                           ],
                         ),
-                        SizedBox(height: 5),
-                        buildControlCard('Exhaust Fan', isExhaustFanOn, 'switch exhaust fan'),
+                    SizedBox(height: 5),    
+                    Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: buildControlCard('Kontrol', isDoorManual, 'switch kontrol pintu', 'Manual', 'Auto'),
+                            ),
+                            SizedBox(width: 3),
+                            Expanded(
+                              child: buildControlCard('Pintu', isDoorOpen, 'switch pintu', 'Buka', 'Tutup'),
+                            ),
+                          ],
+                        ),
                         SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -330,7 +346,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             width: MediaQuery.of(context).size.width * 0.9,
                             height: 100,
                             child: Image.asset(
-                              'assets/Vector.png',
+                              'assets/Graph.gif',
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -348,9 +364,11 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ],
                 ),
+              ]
               ),
             ),
           ),
+        )
         ],
       ),
       
@@ -395,40 +413,61 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // Widget to build control cards (Buzzer, Pintu, Exhaust Fan)
-  Widget buildControlCard(String title, bool isOn, String switchType) {
-      return Card(
-        elevation: 5,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        child: ListTile(
+  Widget buildControlCard(String title, bool isOn, String switchType, String onText, String offText) {
+    return Card(
+    elevation: 4,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    child: Stack(
+      children: [
+        ListTile(
           title: Text(title),
-          subtitle: Text(isOn ? 'On' : 'Off'),
+          subtitle: Text(isOn ? onText : offText), // Gunakan teks kustom
           trailing: Switch(
             value: isOn,
             onChanged: (value) {
               setState(() {
                 // Perbarui nilai switch di Firebase
-              _updateSwitch(switchType, value);
+                _updateSwitch(switchType, value);
 
-              // Perbarui status switch lokal
-              switch (switchType) {
-                case 'switch pintu':
-                  isDoorOpen = value;
-                  break;
-                case 'switch exhaust fan':
-                  isExhaustFanOn = value;
-                  break;
-                case 'switch buzzer':
-                  isBuzzerOn = value;
-                  break;
-                default:
-                  throw ArgumentError('Switch type tidak valid: $switchType');
-              }
-            });
-          },
+                // Perbarui status switch lokal
+                switch (switchType) {
+                  case 'switch pintu':
+                    isDoorOpen = value;
+                    break;
+                  case 'switch kontrol pintu':
+                    isDoorManual = value;
+                    break;
+                  case 'switch exhaust fan':
+                    isExhaustFanOn = value;
+                    break;
+                  case 'switch buzzer':
+                    isBuzzerOn = value;
+                    break;
+                  default:
+                    throw ArgumentError('Switch type tidak valid: $switchType');
+                }
+              });
+            },
+          ),
         ),
+          if (switchType == 'switch pintu') // Tampilkan ikon hanya untuk switch pintu
+            Positioned(
+              top: 5, // Atur jarak dari atas
+              right: 5, // Atur jarak dari kanan
+              child: GestureDetector(
+                onTap: () => _showInfoDialog(context, title),
+                child: Icon(
+                  Icons.info_outline,
+                  color: Colors.black54,
+                  size: 20, // Atur ukuran ikon
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
+
 
   Widget buildGetaranCard(BuildContext context) {
     return GestureDetector(
@@ -440,33 +479,56 @@ class _DashboardPageState extends State<DashboardPage> {
       },
       child: Container(
         height: 200,
-        padding: EdgeInsets.all(16),
+        
         decoration: BoxDecoration(
           color: Colors.grey[200],
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        
           children: [
+            SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Getaran', style: TextStyle(fontSize: 16)),
-                Icon(Icons.sensors),
+                
+                Container(
+                  margin: EdgeInsets.only(left: 16), // Tambahkan margin di sini
+                  child: Text('Getaran', style: TextStyle(fontSize: 16)),
+                ),
+                Container(
+                  margin: EdgeInsets.only(right: 16), // Tambahkan margin di sini
+                  child: Icon(Icons.sensors),
+                ),
               ],
             ),
+            SizedBox(height: 25),
             Expanded(
-              child: Container(
-                width: double.infinity,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-                  child: Image.asset(
-                    'assets/chart_line.png',
-                    fit: BoxFit.fill,
-                  ),
-                ),
+        child: Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.vertical(),
+              child: Image.asset(
+                'assets/chart_line.png',
+                
               ),
             ),
+            SizedBox(height: 5),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center, // Menempatkan di tengah
+              children: [
+                Icon(Icons.open_in_new, color: Colors.black), // Ikon
+                SizedBox(width: 8), // Jarak antara ikon dan teks
+                Text(
+                  'Ketuk untuk melihat', // Teks di samping ikon
+                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                ),
+                
+              ],
+            ),
+          ],
+        ),
+      ),
           ],
         ),
       ),
