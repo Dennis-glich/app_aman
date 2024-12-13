@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:app_aman/screen/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 class TeamProfilePage extends StatefulWidget {
@@ -9,9 +9,9 @@ class TeamProfilePage extends StatefulWidget {
 class _TeamProfilePageState extends State<TeamProfilePage> {
 
   // Function to log out the user
-  Future<void> _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut(); // Log out from Firebase and Google
-    Navigator.pushReplacementNamed(context, '/welcome'); // Redirect to login page
+  void logoutUser(BuildContext context) async {
+    final authService = AuthService();
+    await authService.signOut(context);
   }
   
   @override
@@ -81,10 +81,7 @@ class _TeamProfilePageState extends State<TeamProfilePage> {
         backgroundColor: const Color.fromRGBO(97, 15, 28, 1.0),
         items: [
           BottomNavigationBarItem(
-            icon: GestureDetector(
-              onTap: () => _logout(context), // Call logout function
-              child: Icon(Icons.logout, color: Colors.white),
-            ),
+            icon: Icon(Icons.logout, color: Colors.white),
             label: 'Logout',
           ),
           BottomNavigationBarItem(
@@ -99,10 +96,18 @@ class _TeamProfilePageState extends State<TeamProfilePage> {
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white54,
         currentIndex: 2, // Profile tab selected by default
-        onTap: (index) {
+        onTap: (index) async {
           switch (index) {
             case 0:
-              _logout(context); // Logout if logout icon is tapped
+              // Panggil fungsi signOut dari AuthService
+              final authService = AuthService();
+              try {
+                await authService.signOut(context);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Gagal logout: $e')),
+                );
+              }
               break;
             case 1:
               Navigator.pushNamed(context, '/dashboard');

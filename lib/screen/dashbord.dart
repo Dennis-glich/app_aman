@@ -5,6 +5,8 @@ import 'package:app_aman/screen/widget/gauge.dart';
 import 'package:app_aman/screen/preofilteam.dart';
 import 'package:app_aman/screen/Vibrasi.dart';
 import 'package:app_aman/screen/profil.dart';
+import 'package:app_aman/screen/services/auth_service.dart';
+import 'package:intl/intl.dart';
 
 class DashboardPage extends StatefulWidget {
   @override
@@ -16,33 +18,88 @@ class _DashboardPageState extends State<DashboardPage> {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
   String fullName = 'User';
+  String statusMessage = "Device not connected";
+  double gasLevel = 0.0;
   bool isBuzzerOn = false;
   bool isDoorOpen = false;
-  bool isDoorManual =  false;
   bool isExhaustFanOn = false;
-  double gasLevel = 0.0;
-  String statusMessage = 'Unreadable';
-
+  bool isDoorManual = false;
+  bool isConnected = false;
 
   @override
   void initState() {
     super.initState();
     _initializeData();
     _fetchFullName();
+    _loadInitialValues();
+    checkConnectivity();
   }
 
-  // Function to initialize data from Firebase (for control switches, gas level, and status)
-  void _initializeData() {
-    _database.child('deviceId/control').once().then((DatabaseEvent event) {
-      final data = event.snapshot.value as Map;
-      setState(() {
-        isBuzzerOn = data['switch buzzer'] == 1;
-        isDoorOpen = data['switch pintu'] == 1;
-        isExhaustFanOn = data['switch exhaust fan'] == 1;
-        isDoorManual = data['switch kontrol pintu'] == 1;
-      });
-    });
+void checkConnectivity() {
+  // Referensi ke path Firebase
+  final DatabaseReference _database = FirebaseDatabase.instance
+      .ref("deviceId/monitor/vib_total/timestamp");
 
+  // Mendengarkan perubahan data di path
+  _database.onValue.listen((event) {
+    final timestampString = event.snapshot.value as String?;
+    if (timestampString != null) {
+      try {
+        // Parsing timestamp dari string
+        final timestamp =
+            DateFormat("yyyy-MM-dd HH:mm:ss").parse(timestampString);
+        final currentTime = DateTime.now();
+
+        setState(() {
+          isConnected = currentTime.difference(timestamp).inSeconds <= 10;
+        });
+      } catch (e) {
+        setState(() {
+          isConnected = false;
+        });
+      }
+    } else {
+      setState(() {
+        isConnected = false;
+      });
+    }
+  });
+}
+
+  // Ambil nilai awal dari Realtime Database
+  void _loadInitialValues() async {
+    try {
+      final DataSnapshot snapshot = await _database.child('deviceId/control').get();
+      if (snapshot.exists) {
+        setState(() {
+          isBuzzerOn = snapshot.child('switch_buzzer').value == 1;
+          isDoorOpen = snapshot.child('switch_pintu').value == 1;
+          isExhaustFanOn = snapshot.child('switch_exhaust').value == 1;
+          isDoorManual = snapshot.child('switch_kontrolPintu').value == 1;
+        });
+      }
+    } catch (e) {
+      print('Error loading initial values: $e');
+    }
+  }
+
+    String _getSwitchPath(String switchType) {
+    return 'deviceId/control/$switchType';
+  }
+
+  // Update nilai di Realtime Database
+  void _updateSwitch(String switchType, bool isOn) {
+    int value = isOn ? 1 : 0;
+    String path = _getSwitchPath(switchType);
+    _database.child(path).set(value).catchError((error) {
+      print('Error updating $switchType at $path: $error');
+    });
+  }
+
+
+  // Function to initialize data from Firebase (for gas level, and status)
+  void _initializeData() {
+    // Mendengarkan perubahan pada level gas
     _database.child('deviceId/monitor/gas_value').onValue.listen((DatabaseEvent event) {
       final value = event.snapshot.value;
       setState(() {
@@ -50,11 +107,10 @@ class _DashboardPageState extends State<DashboardPage> {
       });
     });
 
-    // Listen for changes in the status value from Firebase
+    // Mendengarkan perubahan pada status
     _database.child('deviceId/monitor/status').onValue.listen((DatabaseEvent event) {
       final status = event.snapshot.value;
       setState(() {
-        // Set the status message based on the value from Firebase
         if (status == 0) {
           statusMessage = 'Aman';
         } else if (status == 1) {
@@ -86,49 +142,38 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // Function to log out the user
-  Future<void> _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut(); // Log out from Firebase and Google
-    Navigator.pushReplacementNamed(context, '/welcome'); // Redirect to login page
-  }
+  void logoutUser(BuildContext context) async {
+  final authService = AuthService();
+  await authService.signOut(context);
+}
 
-  void _updateSwitch(String switchType, bool isOn) {
-    int value = isOn ? 1 : 0;
 
-    // Tentukan path berdasarkan tipe switch
-    String path;
-    switch (switchType) {
-      case 'switch kontrol pintu':
-        path = 'switch_kontrolPintu';
-        break;
-      case 'switch pintu':
-        path = 'switch_pintu';
-      break;
-      case 'switch exhaust fan':
-        path = 'switch_exhaust';
-        break;
-      case 'switch buzzer':
-        path = 'switch_buzzer';
-        break;
-      default:
-        throw ArgumentError('Switch type tidak valid: $switchType');
-    }
-
-    // Update nilai di Firebase
-    _database.child('deviceId/control/$path').set(value);
-  }
-
-  void _showInfoDialog(BuildContext context, String title) {
+  void _showInfoDialog(BuildContext context, List<String> messages) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Informasi"),
-        content: SingleChildScrollView(
-        child: Text(
-          "Switch pintu hanya akan berfungsi bilamana switch kontrol dalam keadaan manual, jika tidak maka pintu hanya akan bergerak sesuai arahan alat.",
-          textAlign: TextAlign.justify, // Atur perataan teks menjadi justify
-          style: TextStyle(fontSize: 14), // Tambahkan styling jika diperlukan
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Informasi"),
+            Divider(), // Garis pemisah di bawah judul
+          ],
         ),
-      ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: messages
+                .map((message) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        message,
+                        style: TextStyle(fontSize: 14),
+                        textAlign: TextAlign.justify,
+                      ),
+                    ))
+                .toList(),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -138,6 +183,7 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
+
 
   String formatDate(DateTime date) {
     List<String> months = [
@@ -284,13 +330,24 @@ class _DashboardPageState extends State<DashboardPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Expanded(
-                              child: buildControlCard('Buzzer', isBuzzerOn, 'switch buzzer', 'Nyala', 'Mati'),
+                          Expanded(
+                            child: buildControlCard(
+                              'Buzzer',
+                              isBuzzerOn,
+                              'switch_buzzer',
+                              'Nyala',
+                              'Mati',
                             ),
-                            SizedBox(width: 3),
-                            Expanded(
-                              child: buildControlCard('Exhaus', isExhaustFanOn, 'switch exhaust fan', 'Nyala', 'Mati'),
+                          ),
+                          Expanded(
+                            child: buildControlCard(
+                              'Exhaust',
+                              isExhaustFanOn,
+                              'switch_exhaust',
+                              'Nyala',
+                              'Mati',
                             ),
+                          ),
                           ],
                         ),
                     SizedBox(height: 5),    
@@ -300,11 +357,22 @@ class _DashboardPageState extends State<DashboardPage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Expanded(
-                              child: buildControlCard('Kontrol', isDoorManual, 'switch kontrol pintu', 'Manual', 'Auto'),
+                              child: buildControlCard(
+                                'Kontrol',
+                                isDoorManual,
+                                'switch_kontrolPintu',
+                                'Manual',
+                                'Otomatis',
+                              ),
                             ),
-                            SizedBox(width: 3),
                             Expanded(
-                              child: buildControlCard('Pintu', isDoorOpen, 'switch pintu', 'Buka', 'Tutup'),
+                              child: buildControlCard(
+                                'Pintu',
+                                isDoorOpen,
+                                'switch_pintu',
+                                'Terbuka',
+                                'Tertutup',
+                              ),
                             ),
                           ],
                         ),
@@ -323,13 +391,22 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 20),
+                    SizedBox(height: 15),
                     Container(
                       width: double.infinity,
-                      padding: EdgeInsets.all(16),
+                      height: 220,
+                      padding: EdgeInsets.only(bottom: 10, left: 20, right: 5),
                       decoration: BoxDecoration(
                         color: Color.fromRGBO(97, 15, 28, 1.0),
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Color.fromRGBO(97, 15, 28, 1.0), // Mengubah warna border menjadi merah
+                          width: 3, // Menentukan ketebalan border
+                        ),
+                        image: DecorationImage(
+                          image: AssetImage('assets/Graph.gif'),
+                          fit: BoxFit.cover,
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,20 +414,40 @@ class _DashboardPageState extends State<DashboardPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Status', style: TextStyle(fontSize: 18, color: Colors.white)),
-                              Icon(Icons.settings, color: Colors.white, size: 24),
+                              Row(
+                                children: [
+                                  Text(
+                                    'Status',
+                                    style: TextStyle(fontSize: 18, color: Colors.white),
+                                  ),
+                                  SizedBox(width: 8), // Memberikan jarak antara tulisan dan emoji
+                                  Text(
+                                    isConnected ? "😊" : "😢",
+                                    style: TextStyle(fontSize: 24),
+                                  ),
+                                ],
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.info_outline, color: Colors.white, size: 24),
+                                onPressed: () {
+                                  _showInfoDialog(
+                                    context,
+                                    [
+                                      "(Jika emoji Menunjukan senyum maka device terhubung, namun jika emoji menunjukkan wajah sedih maka device tidak terhubung)",
+                                      "",
+                                      "Indikator Bahaya: ",
+                                      "- Aman: Gas < 1000 PPM",
+                                      "- Bahaya: Gas 1500-2500 PPM",
+                                      "- Sangat Berbahaya: > 2500 PPM",
+                                      "Jika Getaran > 567 Perbulan (Perlu dimaintenance)",
+                                      
+                                    ],
+                                  );
+                                },
+                              ),
                             ],
                           ),
-                          SizedBox(height: 10),
-                          Container(
-                            width: MediaQuery.of(context).size.width * 0.9,
-                            height: 100,
-                            child: Image.asset(
-                              'assets/Graph.gif',
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          SizedBox(height: 10),
+                          SizedBox(height: 115),
                           Text(
                             statusMessage,
                             style: TextStyle(
@@ -361,7 +458,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                         ],
                       ),
-                    ),
+                    )
                   ],
                 ),
               ]
@@ -377,10 +474,7 @@ class _DashboardPageState extends State<DashboardPage> {
         backgroundColor: const Color.fromRGBO(97, 15, 28, 1.0),
         items: [
           BottomNavigationBarItem(
-            icon: GestureDetector(
-              onTap: () => _logout(context), // Call logout function
-              child: Icon(Icons.logout, color: Colors.white),
-            ),
+            icon: Icon(Icons.logout, color: Colors.white),
             label: 'Logout',
           ),
           BottomNavigationBarItem(
@@ -394,11 +488,19 @@ class _DashboardPageState extends State<DashboardPage> {
         ],
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white54,
-        currentIndex: 1, // Profile tab selected by default
-        onTap: (index) {
+        currentIndex: 1, // Dashboard tab selected by default
+        onTap: (index) async {
           switch (index) {
             case 0:
-              _logout(context); // Logout if logout icon is tapped
+              // Panggil fungsi signOut dari AuthService
+              final authService = AuthService();
+              try {
+                await authService.signOut(context);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Gagal logout: $e')),
+                );
+              }
               break;
             case 1:
               Navigator.pushNamed(context, '/dashboard');
@@ -415,47 +517,47 @@ class _DashboardPageState extends State<DashboardPage> {
   // Widget to build control cards (Buzzer, Pintu, Exhaust Fan)
   Widget buildControlCard(String title, bool isOn, String switchType, String onText, String offText) {
     return Card(
-    elevation: 4,
+    elevation: 5,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     child: Stack(
       children: [
         ListTile(
+          contentPadding: EdgeInsets.only(left: 10,right: 13),
           title: Text(title),
           subtitle: Text(isOn ? onText : offText), // Gunakan teks kustom
           trailing: Switch(
             value: isOn,
             onChanged: (value) {
               setState(() {
-                // Perbarui nilai switch di Firebase
-                _updateSwitch(switchType, value);
-
-                // Perbarui status switch lokal
-                switch (switchType) {
-                  case 'switch pintu':
-                    isDoorOpen = value;
-                    break;
-                  case 'switch kontrol pintu':
-                    isDoorManual = value;
-                    break;
-                  case 'switch exhaust fan':
-                    isExhaustFanOn = value;
-                    break;
-                  case 'switch buzzer':
-                    isBuzzerOn = value;
-                    break;
-                  default:
-                    throw ArgumentError('Switch type tidak valid: $switchType');
-                }
-              });
+                  _updateSwitch(switchType, value);
+                  switch (switchType) {
+                    case 'switch_pintu':
+                      isDoorOpen = value;
+                      break;
+                    case 'switch_kontrolPintu':
+                      isDoorManual = value;
+                      break;
+                    case 'switch_exhaust':
+                      isExhaustFanOn = value;
+                      break;
+                    case 'switch_buzzer':
+                      isBuzzerOn = value;
+                      break;
+                    default:
+                      throw ArgumentError('Switch type tidak valid: $switchType');
+                  }
+                });
             },
           ),
         ),
-          if (switchType == 'switch pintu') // Tampilkan ikon hanya untuk switch pintu
+          if (switchType == 'switch_pintu') // Tampilkan ikon hanya untuk switch pintu
             Positioned(
               top: 5, // Atur jarak dari atas
               right: 5, // Atur jarak dari kanan
               child: GestureDetector(
-                onTap: () => _showInfoDialog(context, title),
+                onTap: () => _showInfoDialog(
+                  context, ["Switch pintu hanya akan berfungsi bilamana switch kontrol dalam keadaan manual, jika tidak maka pintu hanya akan bergerak sesuai arahan alat."]
+                  ),
                 child: Icon(
                   Icons.info_outline,
                   color: Colors.black54,
@@ -468,7 +570,6 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-
   Widget buildGetaranCard(BuildContext context) {
     return GestureDetector(
       onTap: () {
@@ -478,57 +579,54 @@ class _DashboardPageState extends State<DashboardPage> {
         );
       },
       child: Container(
+        margin: EdgeInsets.all(0),
         height: 200,
-        
         decoration: BoxDecoration(
           color: Colors.grey[200],
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
-        
           children: [
             SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                
                 Container(
-                  margin: EdgeInsets.only(left: 16), // Tambahkan margin di sini
+                  margin: EdgeInsets.only(left: 14), // Tambahkan margin di sini
                   child: Text('Getaran', style: TextStyle(fontSize: 16)),
                 ),
                 Container(
-                  margin: EdgeInsets.only(right: 16), // Tambahkan margin di sini
+                  margin: EdgeInsets.only(right: 14), // Tambahkan margin di sini
                   child: Icon(Icons.sensors),
                 ),
               ],
             ),
             SizedBox(height: 25),
             Expanded(
-        child: Column(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.vertical(),
-              child: Image.asset(
-                'assets/chart_line.png',
-                
+              child: Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.vertical(),
+                    child: Image.asset(
+                      'assets/chart_line.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center, // Menempatkan di tengah
+                    children: [
+                      Text(
+                        'Ketuk untuk melihat', // Teks di samping ikon
+                        style: TextStyle(fontSize: 14, color: Colors.black54),
+                      ),
+                      SizedBox(width: 8), // Jarak antara ikon dan teks
+                      Icon(Icons.open_in_new, color: Colors.black), // Ikon
+                    ],
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: 5),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center, // Menempatkan di tengah
-              children: [
-                Icon(Icons.open_in_new, color: Colors.black), // Ikon
-                SizedBox(width: 8), // Jarak antara ikon dan teks
-                Text(
-                  'Ketuk untuk melihat', // Teks di samping ikon
-                  style: TextStyle(fontSize: 14, color: Colors.black54),
-                ),
-                
-              ],
-            ),
-          ],
-        ),
-      ),
           ],
         ),
       ),

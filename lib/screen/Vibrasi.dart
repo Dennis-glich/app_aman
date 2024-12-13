@@ -1,8 +1,8 @@
+import 'package:app_aman/screen/services/auth_service.dart';
 import 'package:app_aman/screen/widget/line.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -24,11 +24,11 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
   @override
   void initState() {
     super.initState();
-    _initializeData();
+    _loadInitialValues();
     fetchDataFromGoogleSheets();
   }
 
-    Future<void> fetchDataFromGoogleSheets() async {
+  Future<void> fetchDataFromGoogleSheets() async {
     try {
       final response = await http.get(
         Uri.parse(
@@ -62,42 +62,84 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
     }
   }
 
-  Future<void> _launchURL(String url) async {
-  final Uri uri = Uri.parse(url); // Parse string URL ke dalam objek Uri
 
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication, // Membuka dengan aplikasi eksternal (browser)
-    );
-  } else {
-    throw 'Could not launch $url';
+  void _showInfoDialog(BuildContext context) {
+  final String url = "https://docs.google.com/spreadsheets/d/1k5xMMhA5_t75juJYjNpWNzxGE_lJrA8hL5Zn2De-nwc/edit?usp=sharing";
+    showDialog(
+      context: context,
+        builder: (context) => AlertDialog(
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "URL berikut dapat digunakan untuk mengecek data history:",
+                  style: TextStyle(fontSize: 14),
+                ),
+                SizedBox(height: 10),
+                GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: url));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("URL berhasil disalin ke clipboard!")),
+                    );
+                  },
+                  child: Text(
+                    url,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text("Tutup"),
+          ),
+        ],
+      ),
+    );  
   }
-}
 
+  // Ambil nilai awal dari Realtime Database
+  void _loadInitialValues() async {
+    try {
+      final DataSnapshot snapshot = await _database.child('deviceId/control').get();
+      if (snapshot.exists) {
+        setState(() {
+          isBuzzerOn = snapshot.child('switch_buzzer').value == 1;
+        });
+      }
+    } catch (e) {
+      print('Error loading initial values: $e');
+    }
+  }
 
-  void _initializeData() {
-    _database.child('deviceId/control').once().then((DatabaseEvent event) {
-      final data = event.snapshot.value as Map;
-      setState(() {
-        isBuzzerOn = data['switch buzzer'] == 1;
-      });
+      String _getSwitchPath(String switchType) {
+    return 'deviceId/control/$switchType';
+  }
+
+  // Update nilai di Realtime Database
+  void _updateSwitch(String switchType, bool isOn) {
+    int value = isOn ? 1 : 0;
+    String path = _getSwitchPath(switchType);
+    _database.child(path).set(value).catchError((error) {
+      print('Error updating $switchType at $path: $error');
     });
   }
 
   // Function to log out the user
-  Future<void> _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut(); // Log out from Firebase and Google
-    Navigator.pushReplacementNamed(context, '/welcome'); // Redirect to login page
+  void logoutUser(BuildContext context) async {
+    final authService = AuthService();
+    await authService.signOut(context);
   }
 
-  void _updateSwitch(String switchType, bool isOn) {
-    int value = isOn ? 1 : 0;
-    String path = switchType == 'switch buzzer' ? 'switch_buzzer' : '';
-    _database.child('deviceId/control/$path').set(value);
-  }
-
-   Widget _buildVibrationCard(String title, String value) {
+  Widget _buildVibrationCard(String title, String value) {
     return Card(
       elevation: 5,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -217,7 +259,7 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
               ),
               SizedBox(height: 5),
                GestureDetector(
-                  onTap: () => _launchURL('https://docs.google.com/spreadsheets/d/1k5xMMhA5_t75juJYjNpWNzxGE_lJrA8hL5Zn2De-nwc/edit?usp=sharing'),
+                  onTap: () => _showInfoDialog(context),
                   child: Text(
                     'Klik di sini untuk informasi lebih lanjut',
                     style: TextStyle(
@@ -233,8 +275,12 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Expanded(
-                    child: buildControlCard('Buzzer', isBuzzerOn, 'switch buzzer'),
-                  ),
+                            child: buildControlCard(
+                              'Buzzer',
+                              isBuzzerOn,
+                              'switch_buzzer',
+                            ),
+                          ),
                 ],
               ),
             ],
@@ -247,10 +293,7 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
         backgroundColor: const Color.fromRGBO(97, 15, 28, 1.0),
         items: [
           BottomNavigationBarItem(
-            icon: GestureDetector(
-              onTap: () => _logout(context), // Call logout function
-              child: Icon(Icons.logout, color: Colors.white),
-            ),
+            icon: Icon(Icons.logout, color: Colors.white),
             label: 'Logout',
           ),
           BottomNavigationBarItem(
@@ -265,10 +308,18 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white54,
         currentIndex: 1, // Profile tab selected by default
-        onTap: (index) {
+        onTap: (index) async {
           switch (index) {
             case 0:
-              _logout(context); // Logout if logout icon is tapped
+              // Panggil fungsi signOut dari AuthService
+              final authService = AuthService();
+              try {
+                await authService.signOut(context);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Gagal logout: $e')),
+                );
+              }
               break;
             case 1:
               Navigator.pushNamed(context, '/dashboard');
@@ -288,14 +339,20 @@ class _GetaranMonitoringState extends State<GetaranMonitoring> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ListTile(
         title: Text(title),
-        subtitle: Text(isOn ? 'On' : 'Off'),
+        subtitle: Text(isOn ? 'Nyala' : 'Mati'),
         trailing: Switch(
           value: isOn,
           onChanged: (value) {
-            setState(() {
-              _updateSwitch(switchType, value);
-              isBuzzerOn = value;
-            });
+             setState(() {
+                  _updateSwitch(switchType, value);
+                  switch (switchType) {
+                    case 'switch_buzzer':
+                      isBuzzerOn = value;
+                      break;
+                    default:
+                      throw ArgumentError('Switch type tidak valid: $switchType');
+                  }
+                });
           },
         ),
       ),

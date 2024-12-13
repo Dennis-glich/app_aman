@@ -1,7 +1,7 @@
 name: app_aman
 description: "A new Flutter project."
 publish_to: 'none'
-version: 0.1.5
+version: 0.1.8
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -31,6 +31,7 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   googleapis: ^13.2.0
   googleapis_auth: ^1.6.0
+  onesignal_flutter: ^5.1.2
 
 dev_dependencies:
   flutter_test:
@@ -39,7 +40,7 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.1
 
 flutter_launcher_icons:
-  android: "launcher_icon"
+  android: "assets/1024.png"
   ios: true
   image_path: "assets/1024.png"
   min_sdk_android: 23 # android min sdk min:16, default 21
