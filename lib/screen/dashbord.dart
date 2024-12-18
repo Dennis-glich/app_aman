@@ -436,9 +436,9 @@ void checkConnectivity() {
                                       "(Jika emoji Menunjukan senyum maka device terhubung, namun jika emoji menunjukkan wajah sedih maka device tidak terhubung)",
                                       "",
                                       "Indikator Bahaya: ",
-                                      "- Aman: Gas < 1000 PPM",
-                                      "- Bahaya: Gas 1500-2500 PPM",
-                                      "- Sangat Berbahaya: > 2500 PPM",
+                                      "- Aman: Gas <=1000",
+                                      "- Bahaya: Gas >1000 dan <=2000",
+                                      "- Sangat Berbahaya: Gas >2000",
                                       "Jika Getaran > 567 Perbulan (Perlu dimaintenance)",
                                       
                                     ],

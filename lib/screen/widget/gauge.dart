@@ -54,9 +54,9 @@ Widget buildSensorCardWithGauge(String title, double reading) {
                           ),
                         ),
                         Text(
-                          'ppm',
+                          '',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 10,
                             color: Colors.grey[600],
                           ),
                         ),
